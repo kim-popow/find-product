@@ -423,3 +423,60 @@
   }
 }
 
+
+/* Zendesk conversation extension: confirm product */
+.zendesk-confirm {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-confirm {
+  margin-right: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.zendesk-message {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.zendesk-message-warning {
+  background: #fff8e1;
+  color: #7a5b00;
+  border: 1px solid #ffe08a;
+}
+
+.zendesk-message-error {
+  background: #fdecea;
+  color: #a12622;
+  border: 1px solid #f5b5b0;
+}
+
+.zendesk-message-success {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+}
+
+@media (max-width: 768px) {
+  .zendesk-confirm .btn {
+    width: 100%;
+  }
+}

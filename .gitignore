@@ -24,3 +24,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .vercel
+
+# local env files for the serverless functions
+/.env

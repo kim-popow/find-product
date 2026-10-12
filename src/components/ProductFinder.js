@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { productData } from '../data/productData';
+import { createSubmissionId, useZendeskConversation } from '../zendesk/useZendeskConversation';
 import './ProductFinder.css';
 
 const ProductFinder = () => {
@@ -7,6 +8,12 @@ const ProductFinder = () => {
   const [answers, setAnswers] = useState([]);
   const [foundProduct, setFoundProduct] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  // Identifies one "result" so retries of the same confirmation are de-duplicated by the server.
+  const [submissionId, setSubmissionId] = useState(null);
+
+  const zendesk = useZendeskConversation();
+  const isSubmitting = zendesk.submitState === 'submitting';
+  const isSent = zendesk.submitState === 'success';
 
   const currentQuestion = productData.questions[currentQuestionId];
 
@@ -26,6 +33,8 @@ const ProductFinder = () => {
       // Found a product!
       const product = productData.products[answer.productId];
       setFoundProduct(product);
+      setSubmissionId(createSubmissionId());
+      zendesk.resetSubmission();
       setShowResult(true);
     } else if (answer.nextQuestion) {
       // Move to next question
@@ -37,10 +46,18 @@ const ProductFinder = () => {
     setCurrentQuestionId('q1');
     setAnswers([]);
     setFoundProduct(null);
+    setSubmissionId(null);
+    zendesk.resetSubmission();
     setShowResult(false);
   };
 
+  const handleConfirm = () => {
+    if (!foundProduct || !submissionId || isSubmitting || isSent) return;
+    zendesk.confirmProduct(foundProduct.name, submissionId);
+  };
+
   const handleBack = () => {
+    if (isSubmitting) return;
     if (answers.length > 0) {
       const previousAnswers = answers.slice(0, -1);
       setAnswers(previousAnswers);
@@ -62,6 +79,8 @@ const ProductFinder = () => {
       
       setShowResult(false);
       setFoundProduct(null);
+      setSubmissionId(null);
+      zendesk.resetSubmission();
     }
   };
 
@@ -99,11 +118,46 @@ const ProductFinder = () => {
                 </ul>
               </div>
             </div>
+            {/* Only offered when the page was opened from a Zendesk conversation. */}
+            {(zendesk.phase === 'ready' || zendesk.phase === 'unavailable') && (
+              <div className="zendesk-confirm">
+                {zendesk.phase === 'unavailable' && !isSent && zendesk.submitState !== 'error' && (
+                  <p className="zendesk-message zendesk-message-warning" role="alert">
+                    {zendesk.contextMessage}
+                  </p>
+                )}
+                {zendesk.submitState === 'error' && (
+                  <p className="zendesk-message zendesk-message-error" role="alert">
+                    {zendesk.submitError}
+                  </p>
+                )}
+                {isSent && (
+                  <p className="zendesk-message zendesk-message-success" role="status">
+                    {zendesk.closed
+                      ? 'Sent to your chat.'
+                      : 'Sent to your chat. You can close this window and return to the conversation.'}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={isSubmitting || isSent}
+                  aria-busy={isSubmitting}
+                  className="btn btn-primary btn-confirm"
+                >
+                  {isSubmitting
+                    ? 'Sending…'
+                    : isSent
+                    ? 'Sent to your chat ✓'
+                    : 'Confirm product and return to chat'}
+                </button>
+              </div>
+            )}
             <div className="action-buttons">
-              <button onClick={handleRestart} className="btn btn-primary">
+              <button onClick={handleRestart} disabled={isSubmitting} className="btn btn-primary">
                 Start Over
               </button>
-              <button onClick={handleBack} className="btn btn-secondary">
+              <button onClick={handleBack} disabled={isSubmitting} className="btn btn-secondary">
                 Go Back
               </button>
             </div>
