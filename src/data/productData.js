@@ -1,7 +1,11 @@
 // Product finder data structure
 // Each question can have multiple answers, and each answer can lead to another question or a product
 
-export const productData = {
+// NOTE: This file intentionally uses CommonJS exports (not `export const`) so
+// that the very same catalog can be `require`d by the Vercel serverless
+// functions in /api (which validate product names) and imported by the React
+// app through webpack. Keep it a single source of truth.
+const productData = {
   questions: {
     q1: {
       id: 'q1',
@@ -551,4 +555,6 @@ export const productData = {
     }
   }
 };
+
+module.exports = { productData };
 

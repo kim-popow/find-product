@@ -22,6 +22,31 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Product Finder</title>
+
+    <!--
+      Zendesk Conversation Extension: official Webview SDK.
+      https://developer.zendesk.com/documentation/conversations/messaging-platform/programmable-conversations/conversation-extensions/
+
+      `webviewSdkInit` is called by the SDK once it has finished its handshake
+      with the container (Web Widget / iOS / Android). The app waits on
+      `window.__webviewSdkReady`; it resolves with `null` if the script cannot
+      be loaded, so the page keeps working outside Zendesk.
+    -->
+    <script>
+      window.__webviewSdkReady = new Promise(function (resolve) {
+        window.webviewSdkInit = function (sdk) {
+          resolve(sdk);
+        };
+        window.__webviewSdkFailed = function () {
+          resolve(null);
+        };
+      });
+    </script>
+    <script
+      async
+      src="https://static.zdassets.com/conversation-extensions/latest/sdk.js"
+      onerror="window.__webviewSdkFailed()"
+    ></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
