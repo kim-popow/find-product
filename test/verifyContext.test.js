@@ -78,6 +78,12 @@ test('rejects HS256 / unsigned tokens (algorithm confusion)', async () => {
   await rejects(verifyContextToken(none, config, getPublicKey), 'invalid_token');
 });
 
+test('accepts the real-world claim name appUserId', async () => {
+  const token = signContext({ appuserId: undefined, appUserId: 'user_42' });
+  const ctx = await verifyContextToken(token, config, getPublicKey);
+  assert.equal(ctx.appuserId, 'user_42');
+});
+
 test('rejects garbage', async () => {
   await rejects(verifyContextToken('not-a-jwt', config, getPublicKey), 'invalid_token');
   await rejects(verifyContextToken(undefined, config, getPublicKey), 'token_missing');
