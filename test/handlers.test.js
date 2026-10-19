@@ -41,6 +41,19 @@ test('rejects bodies that are not JSON objects', async () => {
   assert.equal(res.statusCode, 400);
 });
 
+test('a body that fails to parse (Vercel throws on req.body) is a 400, not a 500', async () => {
+  const req = { method: 'POST' };
+  Object.defineProperty(req, 'body', {
+    get() {
+      throw new SyntaxError('Unexpected token');
+    },
+  });
+  const res = mockRes();
+  await contextHandler(req, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.code, 'invalid_body');
+});
+
 test('a request without a token is a clean 400 JSON error on both endpoints', async () => {
   const saved = ENV_KEYS.map((k) => [k, process.env[k]]);
   Object.assign(process.env, {

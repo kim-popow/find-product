@@ -14,7 +14,13 @@ function jsonPostHandler(fn) {
         res.setHeader('Allow', 'POST');
         throw new HttpError(405, 'method_not_allowed', 'Use POST.');
       }
-      let body = req.body;
+      let body;
+      try {
+        // Vercel parses the body lazily and throws on malformed JSON.
+        body = req.body;
+      } catch (_) {
+        throw new HttpError(400, 'invalid_body', 'Expected a JSON object.');
+      }
       if (typeof body === 'string') {
         try {
           body = JSON.parse(body);
