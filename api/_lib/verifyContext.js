@@ -1,33 +1,12 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
 const { HttpError } = require('./errors');
-
-// One client per subdomain, reused across invocations of a warm function so
-// the JWKS cache is honoured (the Zendesk endpoint is limited to 5 req/min).
-const clients = new Map();
-
-function getJwksClient(subdomain) {
-  let client = clients.get(subdomain);
-  if (!client) {
-    client = jwksClient({
-      jwksUri: `https://${subdomain}.zendesk.com/.well-known/jwks.json`,
-      cache: true,
-      cacheMaxAge: 60 * 60 * 1000,
-      rateLimit: true,
-      jwksRequestsPerMinute: 4,
-      timeout: 5000,
-    });
-    clients.set(subdomain, client);
-  }
-  return client;
-}
+const jwks = require('./jwks');
 
 /** Default key resolver: fetch (or reuse the cached) public key for `kid`. */
-async function defaultGetPublicKey(subdomain, kid) {
-  const key = await getJwksClient(subdomain).getSigningKey(kid);
-  return key.getPublicKey();
+function defaultGetPublicKey(subdomain, kid) {
+  return jwks.getPublicKey(subdomain, kid);
 }
 
 const REQUIRED_CLAIMS = ['appuserId', 'subdomain', 'appId', 'conversationId'];
@@ -48,8 +27,11 @@ const REQUIRED_CLAIMS = ['appuserId', 'subdomain', 'appId', 'conversationId'];
  *   subdomain:string, integrationId?:string, messageId?:string}>}
  */
 async function verifyContextToken(token, config, getPublicKey = defaultGetPublicKey) {
-  if (typeof token !== 'string' || token.length === 0 || token.length > 8192) {
-    throw new HttpError(401, 'invalid_token', 'Missing or malformed context token.');
+  if (token === undefined || token === null || token === '') {
+    throw new HttpError(400, 'token_missing', 'A context token is required.');
+  }
+  if (typeof token !== 'string' || token.length > 8192) {
+    throw new HttpError(401, 'invalid_token', 'Malformed context token.');
   }
 
   const decoded = jwt.decode(token, { complete: true });
@@ -70,7 +52,8 @@ async function verifyContextToken(token, config, getPublicKey = defaultGetPublic
   try {
     publicKey = await getPublicKey(config.subdomain, decoded.header.kid);
   } catch (err) {
-    // Unknown kid, JWKS unreachable or rate limited.
+    // Upstream problems (JWKS unreachable / empty) keep their 502/503 status.
+    if (err instanceof HttpError) throw err;
     console.error('[zendesk-context] could not resolve signing key:', err && err.message);
     throw new HttpError(401, 'invalid_token', 'Could not verify the context token signature.');
   }

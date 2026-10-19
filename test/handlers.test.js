@@ -41,6 +41,27 @@ test('rejects bodies that are not JSON objects', async () => {
   assert.equal(res.statusCode, 400);
 });
 
+test('a request without a token is a clean 400 JSON error on both endpoints', async () => {
+  const saved = ENV_KEYS.map((k) => [k, process.env[k]]);
+  Object.assign(process.env, {
+    ZENDESK_SUBDOMAIN: 'acme',
+    SUNCO_APP_ID: 'app_123',
+    SUNCO_KEY_ID: 'k',
+    SUNCO_SECRET: 's',
+  });
+  try {
+    const res = mockRes();
+    await contextHandler({ method: 'POST', body: {} }, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.ok, false);
+    assert.equal(res.body.status, 'token_missing');
+    assert.equal(res.body.code, 'token_missing');
+  } finally {
+    ENV_KEYS.forEach((k) => delete process.env[k]);
+    saved.forEach(([k, v]) => v !== undefined && (process.env[k] = v));
+  }
+});
+
 test('reports a missing server configuration without leaking details', async () => {
   const saved = ENV_KEYS.map((k) => [k, process.env[k]]);
   ENV_KEYS.forEach((k) => delete process.env[k]);
