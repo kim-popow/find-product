@@ -29,7 +29,9 @@ function jsonPostHandler(fn) {
       res.status(200).json(result);
     } catch (err) {
       if (err instanceof HttpError) {
-        res.status(err.status).json({ ok: false, code: err.code, message: err.message });
+        res
+          .status(err.status)
+          .json({ ok: false, status: err.code, code: err.code, message: err.message });
         return;
       }
       if (err instanceof ConfigError) {

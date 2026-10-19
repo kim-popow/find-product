@@ -80,5 +80,7 @@ test('rejects HS256 / unsigned tokens (algorithm confusion)', async () => {
 
 test('rejects garbage', async () => {
   await rejects(verifyContextToken('not-a-jwt', config, getPublicKey), 'invalid_token');
-  await rejects(verifyContextToken(undefined, config, getPublicKey), 'invalid_token');
+  await rejects(verifyContextToken(undefined, config, getPublicKey), 'token_missing');
+  await rejects(verifyContextToken('', config, getPublicKey), 'token_missing');
+  await rejects(verifyContextToken(12345, config, getPublicKey), 'invalid_token');
 });
