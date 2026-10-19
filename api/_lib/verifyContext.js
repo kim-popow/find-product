@@ -11,6 +11,15 @@ function defaultGetPublicKey(subdomain, kid) {
 
 const REQUIRED_CLAIMS = ['appuserId', 'subdomain', 'appId', 'conversationId'];
 
+// Real tokens name the user claim `appUserId`; the docs spell it `appuserId`.
+// Accept both and expose it internally as `appuserId`.
+function normalizeClaims(payload) {
+  if (typeof payload.appuserId !== 'string' && typeof payload.appUserId === 'string') {
+    return { ...payload, appuserId: payload.appUserId };
+  }
+  return payload;
+}
+
 /**
  * Verifies a Webview SDK `getContext` token as described in the Zendesk docs:
  *   1. read `kid` from the (unverified) header,
@@ -60,7 +69,7 @@ async function verifyContextToken(token, config, getPublicKey = defaultGetPublic
 
   let payload;
   try {
-    payload = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+    payload = normalizeClaims(jwt.verify(token, publicKey, { algorithms: ['RS256'] }));
   } catch (err) {
     if (err && err.name === 'TokenExpiredError') {
       throw new HttpError(401, 'token_expired', 'The context token has expired.');
